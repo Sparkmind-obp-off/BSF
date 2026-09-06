@@ -11,9 +11,9 @@ const modules = [
 ];
 
 export const catalog = {
-  listSystems: () => systems.map(structuredClone),
+  listSystems: () => systems.map(x => structuredClone(x)),
   getSystem: id => structuredClone(systems.find(x => x.id === id) ?? null),
-  listModules: () => modules.map(structuredClone),
+  listModules: () => modules.map(x => structuredClone(x)),
   getModule: id => structuredClone(modules.find(x => x.id === id) ?? null),
-  resolveModules: ids => ids.map(id => modules.find(x => x.id === id)).filter(Boolean).map(structuredClone)
+  resolveModules: ids => ids.map(id => modules.find(x => x.id === id)).filter(Boolean).map(x => structuredClone(x))
 };
