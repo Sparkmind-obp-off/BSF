@@ -16,7 +16,6 @@ export class FactoryApplication {
     const result={status:findings.length?'BLOCK':'PASS',buildId:b.id,revision:b.revision,findings,stages,evaluatedAt:new Date().toISOString()};
     if(result.status==='PASS'&&b.state==='CONFIGURED') b=advanceState(b,'CONNECTED');
     if(result.status==='PASS'&&b.state==='CONNECTED') b=advanceState(b,'VALIDATED');
-    result.revision=b.revision;
     return{build:this.repository.save(recordValidation(b,result)),result};
   }
   prepareDeployment(id,target='export'){
@@ -25,7 +24,7 @@ export class FactoryApplication {
     if(b.state==='DEPLOYABLE'&&b.deployment?.target===target&&b.deployment?.status==='READY') return b;
     if(b.state!=='VALIDATED') throw new Error('BUILD_NOT_VALIDATED');
     const latest=b.validations.at(-1);
-    if(!latest||latest.status!=='PASS'||latest.revision!==b.revision) throw new Error('VALIDATION_STALE');
+    if(!latest||latest.status!=='PASS'||b.validationRevision!==latest.revision) throw new Error('VALIDATION_STALE');
     const c=advanceState(b,'DEPLOYABLE');
     return this.repository.save({...c,deployment:{target,status:'READY',revision:c.revision,preparedAt:new Date().toISOString()},updatedAt:new Date().toISOString()});
   }
