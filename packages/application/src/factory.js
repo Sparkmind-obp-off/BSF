@@ -19,6 +19,15 @@ export class FactoryApplication {
     result.revision=b.revision;
     return{build:this.repository.save(recordValidation(b,result)),result};
   }
-  prepareDeployment(id,target='export'){const b=this.require(id);if(!['VALIDATED','DEPLOYABLE'].includes(b.state))throw new Error('BUILD_NOT_VALIDATED');const latest=b.validations.at(-1);if(!latest||latest.status!=='PASS'||latest.revision!==b.revision)throw new Error('VALIDATION_STALE');if(!['export'].includes(target))throw new Error('UNSUPPORTED_DEPLOYMENT_TARGET');const c=b.state==='VALIDATED'?advanceState(b,'DEPLOYABLE'):b;return this.repository.save({...c,deployment:{target,status:'READY',revision:c.revision,preparedAt:new Date().toISOString()},updatedAt:new Date().toISOString()});}
+  prepareDeployment(id,target='export'){
+    const b=this.require(id);
+    if(target!=='export') throw new Error('UNSUPPORTED_DEPLOYMENT_TARGET');
+    if(b.state==='DEPLOYABLE'&&b.deployment?.target===target&&b.deployment?.status==='READY') return b;
+    if(b.state!=='VALIDATED') throw new Error('BUILD_NOT_VALIDATED');
+    const latest=b.validations.at(-1);
+    if(!latest||latest.status!=='PASS'||latest.revision!==b.revision) throw new Error('VALIDATION_STALE');
+    const c=advanceState(b,'DEPLOYABLE');
+    return this.repository.save({...c,deployment:{target,status:'READY',revision:c.revision,preparedAt:new Date().toISOString()},updatedAt:new Date().toISOString()});
+  }
   require(id){const b=this.repository.get(id);if(!b)throw new Error('BUILD_NOT_FOUND');return b;}
 }
