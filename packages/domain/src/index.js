@@ -23,7 +23,11 @@ export function setConfiguration(build, configuration) {
   return touch(build, { configuration:structuredClone(configuration) }, 'CONFIGURED');
 }
 export function setConnection(build, key, connection) {
+  if (!key || !connection || typeof connection !== 'object') throw new Error('INVALID_CONNECTION');
   if (build.state !== 'CONFIGURED' && build.state !== 'CONNECTED') throw new Error('BUILD_NOT_CONFIGURED');
-  return touch(build, { connections:{...build.connections,[key]:{...connection}} }, 'CONNECTED');
+  return touch(build, { connections:{...build.connections,[key]:{type:connection.type,status:connection.status,reference:connection.reference}} }, 'CONNECTED');
 }
-export function recordValidation(build, result) { return touch(build, { validations:[...build.validations,result] }, result.status === 'PASS' ? 'VALIDATED' : build.state); }
+export function recordValidation(build, result) {
+  if (!result || result.buildId !== build.id || result.revision !== build.revision) throw new Error('VALIDATION_REVISION_MISMATCH');
+  return { ...build, validations:[...build.validations,result], state:result.status === 'PASS' ? 'VALIDATED' : build.state, updatedAt:new Date().toISOString() };
+}
