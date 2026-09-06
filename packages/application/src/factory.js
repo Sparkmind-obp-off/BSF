@@ -9,13 +9,16 @@ export class FactoryApplication {
   configure(id,configuration){const b=this.require(id),c=setConfiguration(b,configuration),gate=validateConfiguration(c);if(gate.status==='BLOCK')return{build:b,gate};return{build:this.repository.save(c),gate};}
   connect(id,key,connection){const b=this.require(id),c=setConnection(b,key,connection),gate=validateConnections(c);if(gate.status==='BLOCK')return{build:b,gate};return{build:this.repository.save(c),gate};}
   validate(id){
-    let b=this.require(id),stages=[validateComposition(b,this.catalog),validateConfiguration(b),validateConnections(b)];
+    let b=this.require(id);
+    if(!['CONFIGURED','CONNECTED','VALIDATED'].includes(b.state)) throw new Error('BUILD_NOT_READY_FOR_VALIDATION');
+    const stages=[validateComposition(b,this.catalog),validateConfiguration(b),validateConnections(b)];
     const findings=stages.flatMap(x=>x.findings).filter(x=>x.severity==='BLOCKING');
     const result={status:findings.length?'BLOCK':'PASS',buildId:b.id,revision:b.revision,findings,stages,evaluatedAt:new Date().toISOString()};
-    if(result.status==='PASS'&&b.state==='CONFIGURED')b=advanceState(b,'CONNECTED');
-    const c=result.status==='PASS'&&b.state==='CONNECTED'?advanceState(b,'VALIDATED'):b;
-    return{build:this.repository.save(recordValidation(c,result)),result};
+    if(result.status==='PASS'&&b.state==='CONFIGURED') b=advanceState(b,'CONNECTED');
+    if(result.status==='PASS'&&b.state==='CONNECTED') b=advanceState(b,'VALIDATED');
+    result.revision=b.revision;
+    return{build:this.repository.save(recordValidation(b,result)),result};
   }
-  prepareDeployment(id,target='export'){const b=this.require(id);if(!['VALIDATED','DEPLOYABLE'].includes(b.state))throw new Error('BUILD_NOT_VALIDATED');const c=b.state==='VALIDATED'?advanceState(b,'DEPLOYABLE'):b;return this.repository.save({...c,deployment:{target,status:'READY'},updatedAt:new Date().toISOString()});}
+  prepareDeployment(id,target='export'){const b=this.require(id);if(!['VALIDATED','DEPLOYABLE'].includes(b.state))throw new Error('BUILD_NOT_VALIDATED');const latest=b.validations.at(-1);if(!latest||latest.status!=='PASS'||latest.revision!==b.revision)throw new Error('VALIDATION_STALE');if(!['export'].includes(target))throw new Error('UNSUPPORTED_DEPLOYMENT_TARGET');const c=b.state==='VALIDATED'?advanceState(b,'DEPLOYABLE'):b;return this.repository.save({...c,deployment:{target,status:'READY',revision:c.revision,preparedAt:new Date().toISOString()},updatedAt:new Date().toISOString()});}
   require(id){const b=this.repository.get(id);if(!b)throw new Error('BUILD_NOT_FOUND');return b;}
 }
