@@ -18,6 +18,6 @@ export class MemoryBuildRepository {
     return structuredClone(build);
   }
 
-  list() { return [...this.#items.values()].map(structuredClone); }
+  list() { return [...this.#items.values()].map(x => structuredClone(x)); }
   events() { return structuredClone(this.#events); }
 }
