@@ -1,0 +1,11 @@
+{
+  "name": "bsf",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Business System Factory - implementation foundation",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "start": "node apps/factory-api/src/server.js"
+  }
+}
