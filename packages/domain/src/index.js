@@ -19,8 +19,8 @@ export function addModules(build, moduleIds) {
   return touch(build, { moduleIds:[...new Set([...build.moduleIds,...moduleIds])] }, 'COMPOSED');
 }
 export function setConfiguration(build, configuration) {
-  if (build.state !== 'COMPOSED' && build.state !== 'CONFIGURED') throw new Error('BUILD_NOT_COMPOSED');
-  return touch(build, { configuration:structuredClone(configuration) }, 'CONFIGURED');
+  if (!['COMPOSED','CONFIGURED','CONNECTED','VALIDATED','DEPLOYABLE'].includes(build.state)) throw new Error('BUILD_NOT_COMPOSED');
+  return touch(build, { configuration:structuredClone(configuration), connections:{}, validations:[], deployment:null }, 'CONFIGURED');
 }
 export function setConnection(build, key, connection) {
   if (!key || !connection || typeof connection !== 'object') throw new Error('INVALID_CONNECTION');
